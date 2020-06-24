@@ -1,0 +1,76 @@
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+%matplotlib inline
+
+import os
+import math
+import random
+from plotly.subplots import make_subplots
+import plotly.graph_objs as go
+import matplotlib.pyplot as plt
+from scipy.optimize import curve_fit
+data3 = pd.read_csv('/kaggle/input/corona-virus-report/covid_19_clean_complete.csv',header=0, delimiter=',', parse_dates=['Date'])
+#data3['Active'] = data3['Confirmed'] - data3['Deaths'] - data3['Recovered']
+data3[['Province/State']] = data3[['Province/State']].fillna('')
+#data3[['Confirmed', 'Deaths', 'Recovered', 'Active']] = data3[['Confirmed', 'Deaths', 'Recovered', 'Active']].fillna(0)
+#data3['Recovered'] = data3['Recovered'].astype(int)
+data3.sample(6)
+data2 = data3.groupby(['Country/Region'])['Confirmed'].agg('count')
+data3 = data3.groupby(['Country/Region', 'Date', ])['Confirmed']
+#data3['Country/Region'].value_counts()
+tot = data2['Afghanistan']
+
+data3
+temp = data3.sum().diff().reset_index()
+
+mask = temp['Country/Region'] != temp['Country/Region'].shift(1)
+
+temp.loc[mask, 'Confirmed'] = 0
+temp.loc[mask, 'Deaths'] = np.nan
+countries = temp['Country/Region'].unique()
+
+x_axis = range(tot)
+
+plt.figure( figsize=[20,800])
+#plt.subplot(2,3,1)
+#plt.plot(x_axis , temp.loc[temp['Country/Region']=='Australia', 'Confirmed'], label='country')
+#plt.title('Australia')
+
+#plt.subplot(2,3,2)
+#plt.plot(x_axis , temp.loc[temp['Country/Region']=='India', 'Confirmed'], label='country')
+
+#plt.subplot(2,3,3)
+#plt.plot(x_axis , temp.loc[temp['Country/Region']=='Afghanistan', 'Confirmed'], label='country')
+#countries = ['Afghanistan', 'Australia', 'India']
+#for country in countries:
+#    plt.plot(x_axis , temp.loc[temp['Country/Region']==country, 'Confirmed'], label=country)
+    
+#temp['Confirmed'] = temp['Confirmed'].apply(lambda x : np.nan if x==0 else x)
+#temp['Confirmed'] = temp['Confirmed'].dropna()
+cols = 1
+
+rows = math.ceil(len(countries)/cols)
+#print(temp)
+
+def sigmoid(x, A, M, P):
+    return A / (1 + M*np.exp(-P*x))
+
+for idx, country in enumerate(countries):
+    #print(int(idx))
+    r = random.random()
+    b = random.random()
+    g = random.random()
+    color = (r, g, b)
+    #color1 = (r+1, g+1, b+1)
+    y_val = temp.loc[temp['Country/Region']==country, 'Confirmed']
+    #print(y_val)
+    p_par, p_cov = curve_fit(sigmoid, range(len(y_val)) , y_val, p0 = [1,5,9], maxfev=50000 )
+    y_fit = sigmoid(range(len(y_val)+10), p_par[0], p_par[1], p_par[2])
+    plt.subplot(rows,cols,int(idx)+1)
+    
+    plt.plot(range(len(y_val)) , y_val, '-o', c = color)
+    plt.plot(range(len(y_val)+10) , y_fit, '-o', c = color)
+    plt.title(country)
+    
+    
